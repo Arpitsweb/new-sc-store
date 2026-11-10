@@ -322,7 +322,7 @@ checkoutForm.addEventListener("submit", async (event) => {
     const response = await fetch("/api/orders", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({customer,items:cart.map(i=>({id:i.id,qty:i.qty}))})});
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Unable to place order.");
-    alert(`Order placed! Order number: ${data.orderNumber}\nTotal: ${formatPrice(data.total)}\nOur team will contact you to confirm payment and delivery.`);
+    alert(`Order placed successfully!\nOrder number: ${data.orderNumber}\nTotal: ${formatPrice(data.total)}\nSave your order number and use the Track Order section with your checkout phone number to see delivery updates.`);
     cart=[];saveCart();renderCart();closeCart();closeCheckout();checkoutForm.reset();
   } catch (error) { alert(error.message || "Order could not be placed."); }
   finally { submit.disabled = false; }
@@ -374,3 +374,60 @@ document.getElementById("shopNowBtn").addEventListener("click", () => {
 initStoreFilters();
 loadProducts();
 renderCart();
+
+// Customer order tracking. The API verifies both the order number and checkout phone.
+const trackOrderForm = document.getElementById("trackOrderForm");
+if (trackOrderForm) {
+  const trackMessage = document.getElementById("trackOrderMessage");
+  const trackResult = document.getElementById("trackOrderResult");
+  const statusSteps = [
+    ["pending", "Order placed", "We have received your order."],
+    ["confirmed", "Order confirmed", "Your order has been confirmed."],
+    ["processing", "Preparing order", "Your items are being prepared."],
+    ["shipped", "Shipped", "Your package has been dispatched."],
+    ["out_for_delivery", "Out for delivery", "Your package is on its way to you."],
+    ["delivered", "Delivered", "Your order has been delivered."]
+  ];
+  const safeText = (value) => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const dateText = (value) => {
+    if (!value) return "";
+    const date = new Date(value.replace(" ", "T") + (value.endsWith("Z") ? "" : "Z"));
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  };
+  trackOrderForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = trackOrderForm.querySelector("button[type=submit]");
+    button.disabled = true;
+    trackMessage.textContent = "Looking up your order…";
+    trackResult.hidden = true;
+    trackResult.innerHTML = "";
+    try {
+      const form = new FormData(trackOrderForm);
+      const response = await fetch("/api/orders/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderNumber: form.get("orderNumber"), phone: form.get("phone") })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Unable to find this order.");
+      const status = String(data.status || "pending").toLowerCase();
+      const terminal = ["cancelled", "refunded"].includes(status);
+      const currentIndex = statusSteps.findIndex(step => step[0] === status);
+      const timeline = statusSteps.map((step, index) => {
+        const event = [...(data.statusHistory || [])].reverse().find(item => item.status === step[0]);
+        const done = !terminal && currentIndex >= 0 && index <= currentIndex;
+        const active = !terminal && index === currentIndex;
+        return `<div class="tracking-step ${done ? "is-done" : ""} ${active ? "is-current" : ""}"><span class="tracking-dot">${done ? "✓" : index + 1}</span><div><strong>${step[1]}</strong><p>${event ? safeText(event.note || step[2]) : step[2]}</p>${event ? `<small>${safeText(dateText(event.changed_at))}</small>` : ""}</div></div>`;
+      }).join("");
+      const extraHistory = (data.statusHistory || []).filter(item => !statusSteps.some(step => step[0] === item.status));
+      const items = (data.items || []).map(item => `<li>${safeText(item.name)} × ${Number(item.qty || 1)}</li>`).join("");
+      trackResult.innerHTML = `<div class="tracking-order-head"><div><span class="eyebrow">Order ${safeText(data.orderNumber)}</span><h3>${safeText(data.customerName || "Customer")}</h3></div><span class="tracking-status">${safeText(status.replaceAll("_", " ").toUpperCase())}</span></div><p class="tracking-total">Order total: <strong>${formatPrice(data.total)}</strong></p>${terminal ? `<p class="tracking-alert">This order is ${safeText(status)}. Please contact our support team if you need help.</p>` : `<div class="tracking-timeline">${timeline}</div>`}${extraHistory.map(item => `<p class="tracking-history-note"><strong>${safeText(item.status.replaceAll("_", " "))}</strong> — ${safeText(item.note)} <small>${safeText(dateText(item.changed_at))}</small></p>`).join("")}<div class="tracking-items"><strong>Items in this order</strong><ul>${items || "<li>Order items</li>"}</ul></div>`;
+      trackResult.hidden = false;
+      trackMessage.textContent = "Order found. Your latest status is shown below.";
+    } catch (error) {
+      trackMessage.textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+}

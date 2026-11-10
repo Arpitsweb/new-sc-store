@@ -29,6 +29,7 @@
           <a href="#shop">Shop</a>
           <a href="#story">Story</a>
           <a href="#delivery">Delivery</a>
+          <a href="#order-tracking">Track Order</a>
           <a href="#payment">Payment</a>
           <a href="#contact">Contact</a>
         </nav>
@@ -223,6 +224,26 @@
               </p>
             </article>
           </div>
+        </div>
+      </section>
+
+
+      <section id="order-tracking" class="order-tracking-section">
+        <div class="container">
+          <div class="section-header">
+            <div>
+              <span class="eyebrow">Order updates</span>
+              <h2>Track your order.</h2>
+            </div>
+            <p class="section-copy">Enter the order number from your order confirmation and the phone number used at checkout.</p>
+          </div>
+          <form id="trackOrderForm" class="track-order-form">
+            <label>Order number<input name="orderNumber" type="text" placeholder="e.g. NS123456789" required autocomplete="off" /></label>
+            <label>Checkout phone number<input name="phone" type="tel" inputmode="numeric" placeholder="10-digit phone number" required /></label>
+            <button class="btn btn-primary" type="submit">Track order</button>
+          </form>
+          <p id="trackOrderMessage" class="track-order-message" role="status" aria-live="polite"></p>
+          <div id="trackOrderResult" class="track-order-result" hidden></div>
         </div>
       </section>
 

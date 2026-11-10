@@ -125,9 +125,32 @@ app.post("/api/upload",requireAdmin,upload.single("image"),(req,res)=>{if(!req.f
 
 app.get("/api/orders",requireAdmin,asyncRoute(async(_req,res)=>res.json(await all("SELECT * FROM orders ORDER BY id DESC"))));
 app.patch("/api/orders/:id/status",requireAdmin,asyncRoute(async(req,res)=>{
-  const allowed=["pending","confirmed","processing","shipped","delivered","cancelled","paid","refunded"];
-  const status=String(req.body.status||"").toLowerCase(); if(!allowed.includes(status)) return res.status(400).json({error:"Invalid order status."});
-  const result=await run("UPDATE orders SET status=? WHERE id=?",[status,req.params.id]); if(!result.changes)return res.status(404).json({error:"Order not found."}); res.json({success:true});
+  const allowed=["pending","confirmed","processing","shipped","out_for_delivery","delivered","cancelled","paid","refunded"];
+  const status=String(req.body.status||"").toLowerCase();
+  if(!allowed.includes(status)) return res.status(400).json({error:"Invalid order status."});
+  const order=await get("SELECT id,status FROM orders WHERE id=?",[req.params.id]);
+  if(!order) return res.status(404).json({error:"Order not found."});
+  if(String(order.status).toLowerCase()!==status){
+    await run("UPDATE orders SET status=? WHERE id=?",[status,req.params.id]);
+    const notes={pending:"Your order has been placed.",confirmed:"Your order has been confirmed.",processing:"Your order is being prepared.",shipped:"Your order has been shipped.",out_for_delivery:"Your order is out for delivery.",delivered:"Your order has been delivered.",cancelled:"Your order has been cancelled.",paid:"Payment has been marked as received.",refunded:"Your payment has been marked as refunded."};
+    await run("INSERT INTO order_status_history(order_id,status,note) VALUES(?,?,?)",[req.params.id,status,notes[status]||"Order status updated."]);
+  }
+  res.json({success:true,status});
+}));
+
+// Customers can look up only an order when they provide its order number and matching phone number.
+app.post("/api/orders/track",asyncRoute(async(req,res)=>{
+  const orderNumber=String(req.body.orderNumber||"").trim().toUpperCase();
+  const phone=String(req.body.phone||"").replace(/\D/g,"");
+  if(!orderNumber||phone.length<10) return res.status(400).json({error:"Enter your order number and the phone number used at checkout."});
+  const order=await get("SELECT id,order_number,customer_name,total_amount,items_json,status,created_at,phone FROM orders WHERE upper(order_number)=?",[orderNumber]);
+  const storedPhone=String(order?.phone||"").replace(/\D/g,"");
+  if(!order||storedPhone!==phone) return res.status(404).json({error:"We couldn't find an order with those details. Check the order number and phone number."});
+  const history=await all("SELECT status,note,changed_at FROM order_status_history WHERE order_id=? ORDER BY id ASC",[order.id]);
+  const items=(()=>{try{return JSON.parse(order.items_json||"[]").map(i=>({name:i.name,qty:i.qty,image:i.image,price:i.price}));}catch{return [];}})();
+  const statusHistory=history.length?history:[{status:order.status,note:"Your order has been placed.",changed_at:order.created_at}];
+  res.set("Cache-Control","no-store");
+  res.json({orderNumber:order.order_number,customerName:order.customer_name,total:order.total_amount,status:order.status,createdAt:order.created_at,items,statusHistory});
 }));
 app.get("/api/customers",requireAdmin,asyncRoute(async(_req,res)=>res.json(await all(`SELECT customer_name AS name,email,phone,address,COUNT(*) AS orders,SUM(total_amount) AS total_spent,MAX(created_at) AS last_order FROM orders GROUP BY lower(email),phone,customer_name ORDER BY last_order DESC`))));
 app.get("/api/events",requireAdmin,asyncRoute(async(_req,res)=>res.json(await all("SELECT * FROM events ORDER BY id DESC"))));
@@ -152,7 +175,8 @@ app.post("/api/orders",asyncRoute(async(req,res)=>{
   let total=0; const verified=[];
   for(const item of items){const p=await get("SELECT id,name,public_sku,price,image,status FROM products WHERE id=?",[Number(item.id)]);const qty=Math.max(1,Math.min(20,Number(item.qty)||1));if(!p||p.status==="Out of stock")return res.status(400).json({error:"One of the products is unavailable."});total+=Number(p.price)*qty;verified.push({id:p.id,name:p.name,public_sku:p.public_sku,price:p.price,qty,image:p.image});}
   const orderNumber=`NS${Date.now().toString().slice(-9)}`;
-  await run("INSERT INTO orders(order_number,customer_name,email,phone,address,total_amount,items_json,status) VALUES(?,?,?,?,?,?,?,?)",[orderNumber,customer.name,customer.email,customer.phone,customer.address,total,JSON.stringify(verified),"pending"]);
+  const created=await run("INSERT INTO orders(order_number,customer_name,email,phone,address,total_amount,items_json,status) VALUES(?,?,?,?,?,?,?,?)",[orderNumber,customer.name,customer.email,customer.phone,customer.address,total,JSON.stringify(verified),"pending"]);
+  await run("INSERT INTO order_status_history(order_id,status,note) VALUES(?,?,?)",[created.lastID,"pending","Your order has been placed successfully."]);
   res.status(201).json({success:true,orderNumber,total,status:"pending",paymentMode:"Pay on delivery / payment arranged separately"});
 }));
 
