@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UrbanThread | Modern Fashion Store</title>
+    <meta
+      name="description"
+      content="Premium fashion store with cart, payments, and admin panel."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <a href="#home" class="brand">
+          <span class="brand-mark"></span>
+          <span>UrbanThread</span>
+        </a>
+
+        <nav class="nav">
+          <a href="#home">Home</a>
+          <a href="#shop">Shop</a>
+          <a href="#story">Story</a>
+          <a href="#delivery">Delivery</a>
+          <a href="#payment">Payment</a>
+          <a href="#contact">Contact</a>
+        </nav>
+
+        <div class="nav-actions">
+          <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">
+            <span class="theme-icon">🌙</span>
+          </button>
+
+          <a href="admin.html" class="btn btn-secondary">Admin</a>
+          <button class="btn btn-primary" id="shopNowBtn">Shop Now</button>
+
+          <button class="cart-btn" id="cartButton" aria-label="Open cart">
+            🛒
+            <span class="cart-count" id="cartCount">0</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="home">
+      <section class="hero">
+        <div class="container hero-inner">
+          <div class="hero-content">
+            <span class="eyebrow">Style. Comfort. Confidence.</span>
+            <h1>Wear the mood.</h1>
+            <p>
+              Premium essentials, statement streetwear, and elevated pieces designed for everyday confidence.
+            </p>
+
+            <div class="cta-row">
+              <a href="#shop" class="btn btn-primary">Shop Collection</a>
+              <a href="#story" class="btn btn-secondary">Our Story</a>
+            </div>
+
+            <div class="stats">
+              <div class="stat">
+                <strong>25k+</strong>
+                <span>happy shoppers</span>
+              </div>
+              <div class="stat">
+                <strong>48h</strong>
+                <span>avg. dispatch</span>
+              </div>
+              <div class="stat">
+                <strong>4.9/5</strong>
+                <span>review score</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="hero-visual">
+            <div class="hero-glow"></div>
+            <div class="fashion-card">
+              <span class="mini-badge">New drop</span>
+              <div class="fashion-photo"></div>
+              <div class="product-tag">
+                <small>Best seller</small>
+                <strong>Elevate</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="brand-strip-wrap">
+        <div class="container brand-strip">
+          <span>Vogue</span>
+          <span>Elle</span>
+          <span>GQ</span>
+          <span>Harper</span>
+          <span>Style</span>
+        </div>
+      </div>
+
+      <section id="shop">
+        <div class="container">
+          <div class="section-header">
+            <div>
+              <span class="eyebrow">Featured picks</span>
+              <h2>Shop the latest.</h2>
+            </div>
+            <p class="section-copy">
+              Designed for everyday confidence with premium quality, modern fits, and standout style.
+            </p>
+          </div>
+
+          <div class="filters">
+            <button class="chip active" data-filter="all">All</button>
+            <button class="chip" data-filter="women">Women</button>
+            <button class="chip" data-filter="men">Men</button>
+            <button class="chip" data-filter="accessories">Accessories</button>
+            <button class="chip" data-filter="essentials">Essentials</button>
+          </div>
+
+          <div class="products-grid" id="productsGrid"></div>
+        </div>
+      </section>
+
+      <section class="story" id="story">
+        <div class="container story-wrap">
+          <div class="story-image"></div>
+
+          <div class="story-copy">
+            <span class="eyebrow">Our philosophy</span>
+            <h2>Luxury without the fuss.</h2>
+            <p>
+              UrbanThread blends premium styling with practical design. Our aim is to deliver fashion that feels elevated, easy to wear, and made for real life.
+            </p>
+            <p>
+              We focus on comfort, fit, and material quality so your wardrobe feels premium every day — not just for special occasions.
+            </p>
+
+            <ul class="check-list">
+              <li>Premium fabrics and modern silhouettes</li>
+              <li>Limited drops and new seasonal arrivals</li>
+              <li>Fast order fulfillment and easy returns</li>
+              <li>Support that actually responds</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="delivery">
+        <div class="container">
+          <div class="section-header">
+            <div>
+              <span class="eyebrow">Delivery details</span>
+              <h2>Quick, reliable shipping.</h2>
+            </div>
+          </div>
+
+          <div class="info-grid">
+            <article class="info-card">
+              <div class="icon-wrap">🚚</div>
+              <h3>Express Delivery</h3>
+              <p>
+                Metro cities receive dispatch within 48 hours. National delivery usually takes 5–7 business days.
+              </p>
+            </article>
+
+            <article class="info-card">
+              <div class="icon-wrap">📦</div>
+              <h3>Live Tracking</h3>
+              <p>
+                Every order comes with tracking updates and delivery status alerts via email and SMS.
+              </p>
+            </article>
+
+            <article class="info-card">
+              <div class="icon-wrap">↩️</div>
+              <h3>Easy Returns</h3>
+              <p>
+                7-day return window on unworn items. Quick exchange support for size or order issues.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="payment">
+        <div class="container">
+          <div class="section-header">
+            <div>
+              <span class="eyebrow">Payment system</span>
+              <h2>Secure checkout options.</h2>
+            </div>
+          </div>
+
+          <div class="info-grid">
+            <article class="info-card">
+              <div class="icon-wrap">💳</div>
+              <h3>Card Payment</h3>
+              <p>
+                Visa, Mastercard, RuPay, and other major cards supported through secure payment checkout.
+              </p>
+            </article>
+
+            <article class="info-card">
+              <div class="icon-wrap">📱</div>
+              <h3>UPI & Wallets</h3>
+              <p>
+                PhonePe, Paytm, GPay, and UPI payments supported for quick and seamless transactions.
+              </p>
+            </article>
+
+            <article class="info-card">
+              <div class="icon-wrap">🧾</div>
+              <h3>Cash on Delivery</h3>
+              <p>
+                COD available for selected areas to make bulk and local shopping more convenient.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="contact">
+        <div class="container">
+          <div class="newsletter-box">
+            <h2>Get the latest drops.</h2>
+            <div class="newsletter-form">
+              <input type="email" placeholder="Enter your email" />
+              <button class="btn btn-primary">Join Now</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="container footer-inner">
+        <div class="brand">
+          <span class="brand-mark"></span>
+          <span>UrbanThread</span>
+        </div>
+
+        <div class="footer-links">
+          <span>© 2026 UrbanThread</span>
+          <a href="#">Instagram</a>
+          <a href="#">Contact</a>
+          <a href="#">Privacy</a>
+        </div>
+      </div>
+    </footer>
+
+    <div class="overlay" id="overlay"></div>
+
+    <aside class="cart-drawer" id="cartDrawer">
+      <div class="cart-header">
+        <h3>Your cart</h3>
+        <button class="close-btn" id="closeCart">✕</button>
+      </div>
+
+      <div class="cart-items" id="cartItems"></div>
+
+      <div class="cart-summary">
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <span id="subtotal">₹0</span>
+        </div>
+        <div class="summary-row">
+          <span>Shipping</span>
+          <span id="shipping">Free</span>
+        </div>
+        <div class="summary-row total">
+          <span>Total</span>
+          <span id="total">₹0</span>
+        </div>
+        <button class="btn btn-primary checkout-btn" id="checkoutBtn">
+          Proceed to Checkout
+        </button>
+      </div>
+    </aside>
+
+    <div class="modal" id="productModal">
+      <div class="modal-content">
+        <button class="modal-close" id="closeModal">✕</button>
+        <div class="modal-body" id="modalBody"></div>
+      </div>
+    </div>
+
+    <div class="modal" id="checkoutModal">
+      <div class="modal-content checkout-modal-content">
+        <button class="modal-close" id="closeCheckoutModal">✕</button>
+        <div class="checkout-body">
+          <h3>Checkout</h3>
+          <form id="checkoutForm">
+            <div class="form-grid">
+              <label>
+                Full Name
+                <input type="text" name="name" required />
+              </label>
+
+              <label>
+                Phone
+                <input type="tel" name="phone" required />
+              </label>
+            </div>
+
+            <div class="form-grid">
+              <label>
+                Email
+                <input type="email" name="email" required />
+              </label>
+
+              <label>
+                Pincode
+                <input type="text" name="pincode" required />
+              </label>
+            </div>
+
+            <label>
+              House No / Flat / Building
+              <input type="text" name="house" required />
+            </label>
+
+            <label>
+              Area / Street / Locality
+              <input type="text" name="area" required />
+            </label>
+
+            <label>
+              Landmark
+              <input type="text" name="landmark" placeholder="Near Metro Station" />
+            </label>
+
+            <label>
+              City
+              <input type="text" name="city" required />
+            </label>
+
+            <label>
+              State
+              <input type="text" name="state" required />
+            </label>
+
+            <button type="submit" class="btn btn-primary">Place order (payment later)</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

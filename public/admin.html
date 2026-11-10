@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NEW SC | Admin Dashboard</title>
+    <style>
+      :root {
+        --bg-dark: #1f1f1f;
+        --panel-bg: #f3efe9;
+        --soft: #e7e0db;
+        --soft-2: #ddd4ce;
+        --text: #1b1b1b;
+        --muted: #5f5d5b;
+        --line: rgba(27, 27, 27, 0.08);
+        --accent: #cf8b68;
+        --green: #1f8c60;
+        --green-bg: rgba(31, 140, 96, 0.12);
+        --shadow: 0 12px 28px rgba(0, 0, 0, 0.06);
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--bg-dark);
+        font-family: Arial, Helvetica, sans-serif;
+        color: var(--text);
+      }
+
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 0;
+      }
+
+      .app-shell {
+        width: min(1200px, 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 28px 20px;
+      }
+
+      .admin-panel {
+        width: min(100%, 1120px);
+        background: var(--panel-bg);
+        border-radius: 18px;
+        display: grid;
+        grid-template-columns: 290px 1fr;
+        min-height: 820px;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
+      }
+
+      .sidebar {
+        background: rgba(255,255,255,0.08);
+        border-right: 1px solid var(--line);
+        padding: 24px 18px 20px;
+      }
+
+      .brand {
+        font-size: 2.2rem;
+        font-weight: 800;
+        line-height: 1;
+        margin: 0 0 22px;
+        letter-spacing: -0.06em;
+      }
+
+      .nav-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .nav-btn {
+        width: 100%;
+        border: none;
+        background: var(--soft);
+        color: var(--text);
+        text-align: left;
+        padding: 18px 16px;
+        border-radius: 16px;
+        font-size: 1.06rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .nav-btn:hover {
+        background: var(--soft-2);
+      }
+
+      .nav-btn.active {
+        background: #e8e1dd;
+        border: 1px solid rgba(0,0,0,0.08);
+      }
+
+      .logout-btn {
+        margin-top: 20px;
+        border: 1px solid rgba(0,0,0,0.12);
+        background: #f0efed;
+        color: var(--text);
+        border-radius: 999px;
+        padding: 12px 18px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .main-panel {
+        padding: 22px 24px 28px;
+        background: #f5f0ed;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .search-box {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 220px;
+      }
+
+      .search-box input {
+        border: none;
+        outline: none;
+        background: transparent;
+        width: 100%;
+        font-size: 0.96rem;
+      }
+
+      .notify-wrap {
+        position: relative;
+      }
+
+      .bell-btn {
+        position: relative;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        border: 1px solid var(--line);
+        background: white;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        font-size: 1.1rem;
+      }
+
+      .bell-count {
+        position: absolute;
+        top: -5px;
+        right: -4px;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #ff4d4d;
+        color: white;
+        font-size: 0.7rem;
+        font-weight: 700;
+        display: grid;
+        place-items: center;
+        padding: 0 4px;
+      }
+
+      .notification-panel {
+        position: absolute;
+        right: 0;
+        top: 52px;
+        width: 300px;
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        display: none;
+        z-index: 50;
+      }
+
+      .notification-panel.open {
+        display: block;
+      }
+
+      .notification-head {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+        font-weight: 700;
+      }
+
+      .notification-list {
+        max-height: 240px;
+        overflow: auto;
+      }
+
+      .notification-item {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.9rem;
+      }
+
+      .notification-item:last-child {
+        border-bottom: none;
+      }
+
+      .section-panel {
+        display: none;
+      }
+
+      .section-panel.active {
+        display: block;
+      }
+
+      .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .panel-header h2 {
+        margin: 0;
+        font-size: 2.05rem;
+        letter-spacing: -0.05em;
+      }
+
+      .chip {
+        display: inline-flex;
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: rgba(31, 140, 96, 0.12);
+        color: var(--green);
+        font-size: 0.74rem;
+        font-weight: 700;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 22px;
+      }
+
+      .stat-card {
+        background: linear-gradient(135deg, #fbf5f1 0%, #ffffff 100%);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 18px 16px;
+      }
+
+      .stat-card .label {
+        display: block;
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .stat-card .value {
+        display: block;
+        margin-top: 10px;
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -0.06em;
+      }
+
+      .card {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        box-shadow: var(--shadow);
+        padding: 18px;
+      }
+
+      .form-grid {
+        display: grid;
+        gap: 16px;
+      }
+
+      .row-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+
+      label {
+        display: grid;
+        gap: 8px;
+        font-size: 0.88rem;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      input, select, textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(250,248,247,0.9);
+        padding: 0.9rem 1rem;
+        font: inherit;
+        color: var(--text);
+      }
+
+      textarea {
+        min-height: 110px;
+        resize: vertical;
+      }
+
+      .upload-box {
+        background: #faf8f7;
+        border: 1px dashed rgba(27,27,27,0.18);
+        border-radius: 16px;
+        padding: 12px;
+      }
+
+      .upload-box input[type="file"] {
+        display: block;
+        width: 100%;
+        border: none;
+        background: transparent;
+        padding: 0;
+      }
+
+      .image-preview {
+        width: 120px;
+        height: 120px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: #f6f3f1;
+        display: none;
+        object-fit: cover;
+        margin-top: 10px;
+      }
+
+      .image-preview.show {
+        display: block;
+      }
+
+      .primary-btn {
+        border: none;
+        background: var(--accent);
+        color: white;
+        border-radius: 999px;
+        padding: 12px 18px;
+        font-size: 0.98rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .table-wrap {
+        margin-top: 18px;
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th, td {
+        text-align: left;
+        padding: 12px 8px;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.94rem;
+      }
+
+      th {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--muted);
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        background: var(--green-bg);
+        color: var(--green);
+      }
+
+      .tiny-btn {
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0.5rem 0.8rem;
+        cursor: pointer;
+      }
+
+      .customer-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .customer-card {
+        background: #faf8f7;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px;
+      }
+
+      .customer-card strong {
+        display: block;
+        font-size: 1rem;
+        margin-bottom: 6px;
+      }
+
+      .inventory-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .metric {
+        background: #f7f5f3;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 18px;
+      }
+
+      .metric .label {
+        display: block;
+        font-size: 0.72rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 10px;
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -0.06em;
+      }
+
+      .delivery-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .delivery-card {
+        background: #faf8f7;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px;
+      }
+
+      .event-list {
+        display: grid;
+        gap: 16px;
+        margin-top: 12px;
+      }
+
+      .event-card {
+        display: grid;
+        grid-template-columns: 110px 1fr auto;
+        gap: 14px;
+        align-items: center;
+        background: #faf8f7;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 12px;
+      }
+
+      .event-card img {
+        width: 110px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 10px;
+      }
+
+      .event-meta {
+        color: #6b6664;
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 5px;
+      }
+
+      .event-card h4 {
+        margin: 0 0 4px;
+        font-size: 1.1rem;
+      }
+
+      .event-card p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      @media (max-width: 980px) {
+        .admin-panel {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .stats-grid,
+        .row-2,
+        .inventory-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .panel-header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .topbar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .topbar-right {
+          justify-content: space-between;
+        }
+
+        .search-box {
+          min-width: 100%;
+        }
+
+        .event-card {
+          grid-template-columns: 1fr;
+        }
+
+        .event-card img {
+          width: 100%;
+          height: 180px;
+        }
+      }
+
+      .login-screen{position:fixed;inset:0;background:rgba(12,14,18,.94);display:grid;place-items:center;z-index:999;padding:20px}
+      .login-card{width:min(420px,100%);background:#f5f0ed;border-radius:22px;padding:30px;box-shadow:0 24px 80px #0008}
+      .login-card h2{margin:0 0 8px;font-size:1.8rem}.login-card p{color:#666;margin:0 0 22px}
+      .login-card label{display:grid;gap:7px;margin:14px 0;font-weight:600}.login-card input{padding:13px;border:1px solid #ddd;border-radius:10px;font:inherit}
+      .login-error{color:#b42318;min-height:22px;font-size:.9rem}.app-shell[hidden],.login-screen[hidden]{display:none!important}
+      .toast{position:fixed;right:20px;bottom:20px;background:#20242c;color:white;padding:13px 18px;border-radius:12px;z-index:1200;box-shadow:0 8px 30px #0003}
+      .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}.toolbar input{padding:10px;border:1px solid #ddd;border-radius:10px}
+      .tiny-btn.danger{background:#ffe8e8;color:#a11}.tiny-btn:disabled{opacity:.5;cursor:not-allowed}
+      .empty-state{padding:24px;text-align:center;color:#777}
+      @media(max-width:760px){.app-shell{padding:0}.admin-panel{grid-template-columns:1fr;border-radius:0}.sidebar{padding:15px}.nav-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.nav-btn{padding:11px;font-size:.9rem}.main-panel{padding:16px}.table-wrap{overflow:auto}.table-wrap table{min-width:650px}}
+    </style>
+  </head>
+  <body>
+    <div class="login-screen" id="loginScreen">
+      <form class="login-card" id="loginForm">
+        <h2>NEW SC Admin</h2><p>Sign in to manage your store.</p>
+        <label>Username<input name="username" autocomplete="username" required /></label>
+        <label>Password<input name="password" type="password" autocomplete="current-password" required /></label>
+        <div class="login-error" id="loginError" role="alert"></div>
+        <button class="primary-btn" type="submit" style="width:100%">Secure Login</button>
+      </form>
+    </div>
+    <div class="app-shell" id="adminApp" hidden>
+      <div class="admin-panel">
+        <aside class="sidebar">
+          <h1 class="brand">Admin panel</h1>
+
+          <div class="nav-list">
+            <button class="nav-btn active" data-target="products">Products</button>
+            <button class="nav-btn" data-target="orders">Orders</button>
+            <button class="nav-btn" data-target="customers">Customers</button>
+            <button class="nav-btn" data-target="inventory">Inventory</button>
+            <button class="nav-btn" data-target="delivery">Delivery Settings</button>
+            <button class="nav-btn" data-target="events">Events</button>
+          </div>
+
+          <button class="logout-btn" type="button">Logout</button>
+        </aside>
+
+        <main class="main-panel">
+          <div class="topbar">
+            <div></div>
+
+            <div class="topbar-right">
+              <div class="search-box">
+                <span>🔍</span>
+                <input type="text" placeholder="Search" />
+              </div>
+
+              <div class="notify-wrap">
+                <button class="bell-btn" id="bellBtn" type="button" aria-label="Notifications">
+                  🔔
+                  <span class="bell-count" id="bellCount">3</span>
+                </button>
+
+                <div class="notification-panel" id="notificationPanel">
+                  <div class="notification-head">Notifications</div>
+                  <div class="notification-list" id="notificationList"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <section class="section-panel active" id="products">
+            <div class="panel-header">
+              <h2>Products</h2>
+              <span class="chip">Live</span>
+            </div>
+
+            <div class="stats-grid">
+              <div class="stat-card">
+                <span class="label">Total Products</span>
+                <span class="value" id="totalProductsVal">0</span>
+              </div>
+              <div class="stat-card">
+                <span class="label">Low Stock</span>
+                <span class="value" id="lowStockVal">0</span>
+              </div>
+              <div class="stat-card">
+                <span class="label">Revenue</span>
+                <span class="value" id="revenueVal">₹0</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <form id="productForm" class="form-grid">
+                <input type="hidden" id="productId" />
+
+                <div class="row-2">
+                  <label>
+                    Product Name
+                    <input type="text" name="name" placeholder="Aster Silk Shirt" required />
+                  </label>
+
+                  <label>
+                    Category
+                    <select name="category">
+                      <option value="women">Women</option>
+                      <option value="men">Men</option>
+                      <option value="accessories">Accessories</option>
+                      <option value="essentials">Essentials</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="row-2">
+                  <label>
+                    Public SKU
+                    <input type="text" name="publicSku" placeholder="UT-WS-204" required />
+                  </label>
+
+                  <label>
+                    Internal SKU
+                    <input type="text" name="internalSku" placeholder="INT-WS-204" required />
+                  </label>
+                </div>
+
+                <div class="row-2">
+                  <label>
+                    Price
+                    <input type="number" name="price" min="1" required />
+                  </label>
+
+                  <label>
+                    Discount (%)
+                    <input type="number" name="discount" min="0" max="100" value="0" />
+                  </label>
+                </div>
+
+                <div class="row-2">
+                  <label>
+                    Offer Text
+                    <input type="text" name="offerText" placeholder="Save 30%" />
+                  </label>
+
+                  <label>
+                    Status
+                    <select name="status">
+                      <option value="In stock">In stock</option>
+                      <option value="Low stock">Low stock</option>
+                      <option value="Out of stock">Out of stock</option>
+                    </select>
+                  </label>
+                </div>
+
+                <label>
+                  Description
+                  <textarea name="description" placeholder="Product description"></textarea>
+                </label>
+
+                <div class="upload-box">
+                  <label>
+                    Product Image
+                    <input type="file" id="productImage" accept="image/*" />
+                  </label>
+                  <img class="image-preview" id="imagePreview" alt="Preview" />
+                </div>
+
+                <button type="submit" class="primary-btn">Add Product</button>
+              </form>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>SKU</th>
+                    <th>Price</th>
+                    <th>Discount</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="productTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="section-panel" id="orders">
+            <div class="panel-header">
+              <h2>Orders</h2>
+              <span class="chip">Live</span>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Order #</th>
+                    <th>Customer</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="ordersTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="section-panel" id="customers">
+            <div class="panel-header">
+              <h2>Customers</h2>
+              <span class="chip">Verified</span>
+            </div>
+
+            <div id="customersList" class="customer-list"></div>
+          </section>
+
+          <section class="section-panel" id="inventory">
+            <div class="panel-header">
+              <h2>Inventory</h2>
+              <span class="chip">Updated</span>
+            </div>
+
+            <div class="inventory-grid">
+              <div class="metric">
+                <span class="label">Total Products</span>
+                <strong id="invTotal">0</strong>
+              </div>
+              <div class="metric">
+                <span class="label">Low Stock</span>
+                <strong id="invLow">0</strong>
+              </div>
+              <div class="metric">
+                <span class="label">Ready to Ship</span>
+                <strong id="invReady">0</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="section-panel" id="delivery">
+            <div class="panel-header">
+              <h2>Delivery Settings</h2>
+              <span class="chip">Enabled</span>
+            </div>
+
+            <div class="delivery-list">
+              <div class="delivery-card">
+                <strong>Express Delivery</strong>
+                <p>Metro cities: 48 hours</p>
+              </div>
+              <div class="delivery-card">
+                <strong>Return Policy</strong>
+                <p>7-day return window</p>
+              </div>
+              <div class="delivery-card">
+                <strong>Delivery Zones</strong>
+                <p>India-wide shipping enabled</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="section-panel" id="events">
+            <div class="panel-header">
+              <h2>Events</h2>
+              <span class="chip">Live</span>
+            </div>
+
+            <div class="card">
+              <form id="eventForm" class="form-grid">
+                <div class="row-2">
+                  <label>
+                    Event Title
+                    <input type="text" name="title" placeholder="Summer Drop" required />
+                  </label>
+
+                  <label>
+                    Event Date
+                    <input type="date" name="date" required />
+                  </label>
+                </div>
+
+                <label>
+                  Subtitle
+                  <input type="text" name="subtitle" placeholder="Up to 40% Off" />
+                </label>
+
+                <label>
+                  Description
+                  <textarea name="description" placeholder="Event description"></textarea>
+                </label>
+
+                <button class="primary-btn" type="submit">Add Event</button>
+              </form>
+            </div>
+
+            <div class="event-list" id="eventList"></div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script>
+      const $ = (s) => document.querySelector(s);
+      const state = { products: [], orders: [], customers: [], events: [], notifications: [], summary: {} };
+      const money = (v) => `₹${Number(v || 0).toLocaleString("en-IN")}`;
+      const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+      async function api(url, options={}) {
+        const response = await fetch(url, { credentials:"same-origin", ...options });
+        const data = await response.json().catch(()=>({}));
+        if (response.status === 401) { showLogin(); throw new Error("Your session expired. Please log in again."); }
+        if (!response.ok) throw new Error(data.error || "Request failed.");
+        return data;
+      }
+      function toast(message){let el=$("#toast");if(!el){el=document.createElement("div");el.id="toast";el.className="toast";document.body.append(el);}el.textContent=message;clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>el.remove(),3200);}
+      function showLogin(){ $("#loginScreen").hidden=false; $("#adminApp").hidden=true; }
+      function showApp(){ $("#loginScreen").hidden=true; $("#adminApp").hidden=false; }
+      async function loadAll(){
+        const [products,orders,customers,events,summary,notifications]=await Promise.all([
+          api("/api/admin/products"),api("/api/orders"),api("/api/customers"),api("/api/events"),api("/api/admin/summary"),api("/api/admin/notifications")
+        ]);
+        Object.assign(state,{products,orders,customers,events,summary,notifications});
+        renderAll();
+      }
+      function renderAll(){renderProducts();renderOrders();renderCustomers();renderEvents();renderStats();renderNotifications();}
+      function renderStats(){const s=state.summary;$("#totalProductsVal").textContent=s.totalProducts||0;$("#lowStockVal").textContent=s.lowStock||0;$("#revenueVal").textContent=money(s.revenue);$("#invTotal").textContent=s.totalProducts||0;$("#invLow").textContent=s.lowStock||0;$("#invReady").textContent=s.readyToShip||0;}
+      function renderProducts(){const term=( $("#adminSearch")?.value || "").toLowerCase();const rows=state.products.filter(p=>[p.name,p.public_sku,p.internal_sku,p.category].join(" ").toLowerCase().includes(term));$("#productTableBody").innerHTML=rows.length?rows.map(p=>`<tr><td><div style="display:flex;gap:9px;align-items:center"><img src="${esc(p.image||"")}" alt="" style="width:42px;height:48px;object-fit:cover;border-radius:7px" onerror="this.style.display='none'"><span>${esc(p.name)}</span></div></td><td>${esc(p.public_sku)}</td><td>${money(p.price)}</td><td>${p.old_price>p.price?Math.round((1-p.price/p.old_price)*100):0}%</td><td><span class="status-pill">${esc(p.status)}</span></td><td><button class="tiny-btn" data-edit="${p.id}">Edit</button> <button class="tiny-btn danger" data-delete-product="${p.id}">Delete</button></td></tr>`).join(""):`<tr><td colspan="6" class="empty-state">No products found.</td></tr>`;}
+      function renderOrders(){ $("#ordersTableBody").innerHTML=state.orders.length?state.orders.map(o=>`<tr><td>${esc(o.order_number)}</td><td>${esc(o.customer_name)}<br><small>${esc(o.phone||"")}</small></td><td>${money(o.total_amount)}</td><td><select data-order-status="${o.id}" aria-label="Order status">${["pending","confirmed","processing","shipped","delivered","cancelled","paid","refunded"].map(s=>`<option value="${s}" ${String(o.status).toLowerCase()===s?"selected":""}>${s}</option>`).join("")}</select></td><td><button class="tiny-btn" data-save-order="${o.id}">Save</button><button class="tiny-btn" data-view-order="${o.id}">Details</button></td></tr>`).join(""):`<tr><td colspan="5" class="empty-state">No orders yet.</td></tr>`; }
+      function renderCustomers(){ $("#customersList").innerHTML=state.customers.length?state.customers.map(c=>`<div class="customer-card"><strong>${esc(c.name||"Customer")}</strong><div>Email: ${esc(c.email||"—")}</div><div>Phone: ${esc(c.phone||"—")}</div><div>Address: ${esc(c.address||"—")}</div><div>Orders: ${c.orders||0} · Total spent: ${money(c.total_spent)}</div></div>`).join(""):`<div class="empty-state">Customer records will appear after orders are placed.</div>`; }
+      function renderEvents(){ $("#eventList").innerHTML=state.events.length?state.events.map(e=>`<div class="event-card"><img src="${esc(e.image||"")}" alt="${esc(e.title)}" onerror="this.style.display='none'"><div><div class="event-meta">${esc(e.date||"")}</div><h4>${esc(e.title)}</h4><div>${esc(e.subtitle||"")}</div><p>${esc(e.description||"")}</p></div><button class="tiny-btn danger" data-delete-event="${e.id}">Delete</button></div>`).join(""):`<div class="empty-state">No events created.</div>`; }
+      function renderNotifications(){ $("#notificationList").innerHTML=state.notifications.length?state.notifications.map(n=>`<div class="notification-item">${esc(n.text)}</div>`).join(""):`<div class="notification-item">You're all caught up.</div>`;$("#bellCount").textContent=state.notifications.length; }
+      function resetProductForm(){$("#productForm").reset();$("#productId").value="";$("#imagePreview").src="";$("#imagePreview").classList.remove("show");$("#productForm button[type=submit]").textContent="Add Product";}
+      function editProduct(id){const p=state.products.find(x=>x.id===Number(id));if(!p)return;const f=$("#productForm");f.elements.name.value=p.name;f.elements.category.value=String(p.category).toLowerCase();f.elements.publicSku.value=p.public_sku;f.elements.internalSku.value=p.internal_sku;f.elements.price.value=p.price;f.elements.discount.value=p.old_price>p.price?Math.round((1-p.price/p.old_price)*100):0;f.elements.offerText.value=p.offer_text||"";f.elements.status.value=p.status;f.elements.description.value=p.description||"";$("#productId").value=p.id;$("#imagePreview").src=p.image||"";$("#imagePreview").classList.toggle("show",!!p.image);f.querySelector("button[type=submit]").textContent="Update Product";f.scrollIntoView({behavior:"smooth",block:"start"});}
+      $("#loginForm").addEventListener("submit",async e=>{e.preventDefault();const b=e.submitter;b.disabled=true;$("#loginError").textContent="";try{const fd=new FormData(e.currentTarget);await api("/api/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:fd.get("username"),password:fd.get("password")})});showApp();await loadAll();}catch(err){$("#loginError").textContent=err.message;}finally{b.disabled=false;}});
+      document.querySelectorAll(".nav-btn").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active",b===btn));document.querySelectorAll(".section-panel").forEach(p=>p.classList.toggle("active",p.id===btn.dataset.target));}));
+      $("#productImage").addEventListener("change",e=>{const file=e.target.files[0];if(!file)return;if(file.size>5*1024*1024){toast("Image must be 5 MB or smaller.");e.target.value="";return;}const reader=new FileReader();reader.onload=ev=>{$("#imagePreview").src=ev.target.result;$("#imagePreview").classList.add("show");};reader.readAsDataURL(file);});
+      $("#productForm").addEventListener("submit",async e=>{e.preventDefault();const form=e.currentTarget;const fd=new FormData(form);const price=Number(fd.get("price"));const discount=Math.max(0,Math.min(100,Number(fd.get("discount"))||0));const oldPrice=discount?Math.round(price/(1-discount/100)*100)/100:0;const imageFile=$("#productImage").files[0];const payload=new FormData();for(const key of ["name","category","publicSku","internalSku","offerText","status","description"])payload.append(key,fd.get(key)||"");payload.append("price",String(price));payload.append("oldPrice",String(oldPrice));payload.append("badge","New");payload.append("rating","4.8");if(imageFile)payload.append("imageFile",imageFile);else{const existing=state.products.find(p=>p.id===Number($("#productId").value));payload.append("image",existing?.image||"");}const id=$("#productId").value;try{await api(id?`/api/products/${id}`:"/api/products",{method:id?"PUT":"POST",body:payload});toast(id?"Product updated.":"Product added.");resetProductForm();await loadAll();}catch(err){toast(err.message);}});
+      $("#productTableBody").addEventListener("click",async e=>{const edit=e.target.closest("[data-edit]");const del=e.target.closest("[data-delete-product]");if(edit)editProduct(edit.dataset.edit);if(del&&confirm("Delete this product permanently?")){try{await api(`/api/products/${del.dataset.deleteProduct}`,{method:"DELETE"});toast("Product deleted.");await loadAll();}catch(err){toast(err.message);}}});
+      $("#ordersTableBody").addEventListener("click",async e=>{const save=e.target.closest("[data-save-order]");const view=e.target.closest("[data-view-order]");if(save){const id=save.dataset.saveOrder;const status=document.querySelector(`[data-order-status="${id}"]`).value;try{await api(`/api/orders/${id}/status`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status})});toast("Order status updated.");await loadAll();}catch(err){toast(err.message);}}if(view){const o=state.orders.find(x=>x.id===Number(view.dataset.viewOrder));if(o){let items=[];try{items=JSON.parse(o.items_json||"[]");}catch{}alert(`Order: ${o.order_number}\nCustomer: ${o.customer_name}\nEmail: ${o.email}\nPhone: ${o.phone}\nAddress: ${o.address}\nItems: ${items.map(i=>`${i.name} x ${i.qty}`).join(", ")}\nTotal: ${money(o.total_amount)}\nStatus: ${o.status}`);}}});
+      $("#eventForm").addEventListener("submit",async e=>{e.preventDefault();const fd=new FormData(e.currentTarget);const payload=Object.fromEntries(fd.entries());try{await api("/api/events",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});e.currentTarget.reset();toast("Event added.");await loadAll();}catch(err){toast(err.message);}});
+      $("#eventList").addEventListener("click",async e=>{const b=e.target.closest("[data-delete-event]");if(b&&confirm("Delete this event?")){try{await api(`/api/events/${b.dataset.deleteEvent}`,{method:"DELETE"});toast("Event deleted.");await loadAll();}catch(err){toast(err.message);}}});
+      $("#bellBtn").addEventListener("click",()=>$("#notificationPanel").classList.toggle("open"));
+      $(".logout-btn").addEventListener("click",async()=>{try{await api("/api/admin/logout",{method:"POST"});}catch{}showLogin();toast("Logged out.");});
+      const search=document.createElement("input");search.id="adminSearch";search.type="search";search.placeholder="Search products…";search.setAttribute("aria-label","Search products");search.style.cssText="padding:10px;border:1px solid #ddd;border-radius:10px;max-width:220px";$(".search-box").replaceChildren(document.createTextNode("🔍 "),search);search.addEventListener("input",renderProducts);
+      const reset=document.createElement("button");reset.type="button";reset.className="tiny-btn";reset.textContent="Clear form";reset.addEventListener("click",resetProductForm);$("#productForm").append(reset);
+      (async()=>{try{const session=await api("/api/admin/session");if(session.isAdmin){showApp();await loadAll();}else showLogin();}catch{showLogin();}})();
+    </script>
+  </body>
+</html>
