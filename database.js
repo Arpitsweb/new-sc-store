@@ -45,6 +45,29 @@ function initDatabase() {
       )
     `);
 
+    db.run(`CREATE TABLE IF NOT EXISTS customers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      phone TEXT DEFAULT '',
+      password_hash TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    db.run("ALTER TABLE orders ADD COLUMN customer_id INTEGER", (err) => { if (err && !String(err.message).includes("duplicate column name")) console.error("orders.customer_id migration:", err.message); });
+    db.run(`CREATE TABLE IF NOT EXISTS support_tickets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_id INTEGER NOT NULL,
+      order_number TEXT,
+      subject TEXT NOT NULL,
+      message TEXT NOT NULL,
+      admin_reply TEXT DEFAULT '',
+      status TEXT DEFAULT 'open',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      replied_at DATETIME,
+      FOREIGN KEY(customer_id) REFERENCES customers(id)
+    )`);
+
     db.run(`
       CREATE TABLE IF NOT EXISTS order_status_history (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -178,55 +201,7 @@ function initDatabase() {
       }
     });
 
-    db.get("SELECT COUNT(*) AS count FROM orders", (err, row) => {
-      if (err) return console.error(err);
 
-      if (row.count === 0) {
-        const orders = [
-          {
-            order_number: "UT241001",
-            customer_name: "Riya Sharma",
-            email: "riya@test.com",
-            phone: "+91 98765 43210",
-            address: "Pune, Maharashtra",
-            total_amount: 4999,
-            items_json: JSON.stringify([{ name: "Aster Silk Shirt", qty: 1, price: 2499 }]),
-            status: "paid"
-          },
-          {
-            order_number: "UT241002",
-            customer_name: "Arjun Mehta",
-            email: "arjun@test.com",
-            phone: "+91 99887 66554",
-            address: "Mumbai, Maharashtra",
-            total_amount: 2899,
-            items_json: JSON.stringify([{ name: "Monarch Overshirt", qty: 1, price: 2899 }]),
-            status: "shipped"
-          }
-        ];
-
-        const stmt = db.prepare(`
-          INSERT INTO orders
-          (order_number, customer_name, email, phone, address, total_amount, items_json, status)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-
-        orders.forEach((o) => {
-          stmt.run([
-            o.order_number,
-            o.customer_name,
-            o.email,
-            o.phone,
-            o.address,
-            o.total_amount,
-            o.items_json,
-            o.status
-          ]);
-        });
-
-        stmt.finalize();
-      }
-    });
   });
 }
 

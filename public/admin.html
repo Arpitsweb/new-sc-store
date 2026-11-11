@@ -560,6 +560,8 @@
       .tiny-btn.danger{background:#ffe8e8;color:#a11}.tiny-btn:disabled{opacity:.5;cursor:not-allowed}
       .empty-state{padding:24px;text-align:center;color:#777}
       @media(max-width:760px){.app-shell{padding:0}.admin-panel{grid-template-columns:1fr;border-radius:0}.sidebar{padding:15px}.nav-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.nav-btn{padding:11px;font-size:.9rem}.main-panel{padding:16px}.table-wrap{overflow:auto}.table-wrap table{min-width:650px}}
+    
+      .support-inbox{display:grid;gap:16px}.support-admin-card{background:#fff;border:1px solid #e8e8ee;border-radius:15px;padding:18px;color:#20202a}.support-admin-head{display:flex;justify-content:space-between;gap:15px;align-items:flex-start}.support-admin-meta{font-size:.82rem;color:#777;margin-top:5px}.support-admin-message{white-space:pre-wrap;line-height:1.6;background:#f8f8fa;border-radius:10px;padding:13px}.support-admin-reply{border-left:3px solid #b38a3e;padding:8px 12px;background:#fbf7ef}.support-admin-reply p{white-space:pre-wrap;margin:6px 0}.support-reply-form{display:grid;gap:10px}.support-reply-form label{display:grid;gap:7px}.support-reply-form textarea{width:100%;padding:11px;border:1px solid #ddd;border-radius:9px;font:inherit}.support-admin-actions{display:flex;gap:10px;align-items:center}.support-admin-actions select{padding:9px;border:1px solid #ddd;border-radius:8px}
     </style>
   </head>
   <body>
@@ -581,6 +583,7 @@
             <button class="nav-btn active" data-target="products">Products</button>
             <button class="nav-btn" data-target="orders">Orders</button>
             <button class="nav-btn" data-target="customers">Customers</button>
+            <button class="nav-btn" data-target="support">Customer Care <span id="supportOpenCount"></span></button>
             <button class="nav-btn" data-target="inventory">Inventory</button>
             <button class="nav-btn" data-target="delivery">Delivery Settings</button>
             <button class="nav-btn" data-target="events">Events</button>
@@ -751,6 +754,13 @@
             </div>
           </section>
 
+
+          <section class="section-panel" id="support">
+            <div class="panel-header"><h2>Customer care inbox</h2><span class="chip">Support</span></div>
+            <p style="color:#888;margin:0 0 18px">Read customer questions and complaints, reply, and update ticket status. Replies appear in the customer's My Account page.</p>
+            <div id="supportInbox" class="support-inbox"></div>
+          </section>
+
           <section class="section-panel" id="customers">
             <div class="panel-header">
               <h2>Customers</h2>
@@ -846,7 +856,7 @@
 
     <script>
       const $ = (s) => document.querySelector(s);
-      const state = { products: [], orders: [], customers: [], events: [], notifications: [], summary: {} };
+      const state = { products: [], orders: [], customers: [], events: [], notifications: [], tickets: [], summary: {} };
       const money = (v) => `₹${Number(v || 0).toLocaleString("en-IN")}`;
       const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
       async function api(url, options={}) {
@@ -860,16 +870,17 @@
       function showLogin(){ $("#loginScreen").hidden=false; $("#adminApp").hidden=true; }
       function showApp(){ $("#loginScreen").hidden=true; $("#adminApp").hidden=false; }
       async function loadAll(){
-        const [products,orders,customers,events,summary,notifications]=await Promise.all([
-          api("/api/admin/products"),api("/api/orders"),api("/api/customers"),api("/api/events"),api("/api/admin/summary"),api("/api/admin/notifications")
+        const [products,orders,customers,events,summary,notifications,tickets]=await Promise.all([
+          api("/api/admin/products"),api("/api/orders"),api("/api/customers"),api("/api/events"),api("/api/admin/summary"),api("/api/admin/notifications"),api("/api/admin/support")
         ]);
-        Object.assign(state,{products,orders,customers,events,summary,notifications});
+        Object.assign(state,{products,orders,customers,events,summary,notifications,tickets});
         renderAll();
       }
-      function renderAll(){renderProducts();renderOrders();renderCustomers();renderEvents();renderStats();renderNotifications();}
+      function renderAll(){renderProducts();renderOrders();renderCustomers();renderEvents();renderStats();renderNotifications();renderSupport();}
       function renderStats(){const s=state.summary;$("#totalProductsVal").textContent=s.totalProducts||0;$("#lowStockVal").textContent=s.lowStock||0;$("#revenueVal").textContent=money(s.revenue);$("#invTotal").textContent=s.totalProducts||0;$("#invLow").textContent=s.lowStock||0;$("#invReady").textContent=s.readyToShip||0;}
       function renderProducts(){const term=( $("#adminSearch")?.value || "").toLowerCase();const rows=state.products.filter(p=>[p.name,p.public_sku,p.internal_sku,p.category].join(" ").toLowerCase().includes(term));$("#productTableBody").innerHTML=rows.length?rows.map(p=>`<tr><td><div style="display:flex;gap:9px;align-items:center"><img src="${esc(p.image||"")}" alt="" style="width:42px;height:48px;object-fit:cover;border-radius:7px" onerror="this.style.display='none'"><span>${esc(p.name)}</span></div></td><td>${esc(p.public_sku)}</td><td>${money(p.price)}</td><td>${p.old_price>p.price?Math.round((1-p.price/p.old_price)*100):0}%</td><td><span class="status-pill">${esc(p.status)}</span></td><td><button class="tiny-btn" data-edit="${p.id}">Edit</button> <button class="tiny-btn danger" data-delete-product="${p.id}">Delete</button></td></tr>`).join(""):`<tr><td colspan="6" class="empty-state">No products found.</td></tr>`;}
       function renderOrders(){ $("#ordersTableBody").innerHTML=state.orders.length?state.orders.map(o=>`<tr><td>${esc(o.order_number)}</td><td>${esc(o.customer_name)}<br><small>${esc(o.phone||"")}</small></td><td>${money(o.total_amount)}</td><td><select data-order-status="${o.id}" aria-label="Order status">${["pending","confirmed","processing","shipped","out_for_delivery","delivered","cancelled","paid","refunded"].map(s=>`<option value="${s}" ${String(o.status).toLowerCase()===s?"selected":""}>${s}</option>`).join("")}</select></td><td><button class="tiny-btn" data-save-order="${o.id}">Save</button><button class="tiny-btn" data-view-order="${o.id}">Details</button></td></tr>`).join(""):`<tr><td colspan="5" class="empty-state">No orders yet.</td></tr>`; }
+      function renderSupport(){const open=state.tickets.filter(t=>t.status==="open").length;$("#supportOpenCount").textContent=open?`(${open})`:"";$("#supportInbox").innerHTML=state.tickets.length?state.tickets.map(t=>`<article class="support-admin-card"><div class="support-admin-head"><div><strong>#${t.id} · ${esc(t.subject)}</strong><div class="support-admin-meta">${esc(t.customer_name)} · ${esc(t.customer_email)} · ${esc(t.customer_phone||"No phone")}</div>${t.order_number?`<div class="support-admin-meta">Order: ${esc(t.order_number)}</div>`:""}</div><span class="status-pill">${esc(t.status)}</span></div><p class="support-admin-message">${esc(t.message)}</p>${t.admin_reply?`<div class="support-admin-reply"><strong>Previous reply</strong><p>${esc(t.admin_reply)}</p></div>`:""}<form class="support-reply-form" data-ticket-form="${t.id}"><label>Reply<textarea name="reply" rows="3" maxlength="3000" placeholder="Write a helpful reply…">${esc(t.admin_reply||"")}</textarea></label><div class="support-admin-actions"><select name="status"><option value="open" ${t.status==="open"?"selected":""}>Open</option><option value="in_progress" ${t.status==="in_progress"?"selected":""}>In progress</option><option value="replied" ${t.status==="replied"?"selected":""}>Replied</option><option value="closed" ${t.status==="closed"?"selected":""}>Closed</option></select><button class="tiny-btn" type="submit">Save reply & status</button></div></form></article>`).join(""):`<div class="empty-state">No customer-care messages yet.</div>`;}
       function renderCustomers(){ $("#customersList").innerHTML=state.customers.length?state.customers.map(c=>`<div class="customer-card"><strong>${esc(c.name||"Customer")}</strong><div>Email: ${esc(c.email||"—")}</div><div>Phone: ${esc(c.phone||"—")}</div><div>Address: ${esc(c.address||"—")}</div><div>Orders: ${c.orders||0} · Total spent: ${money(c.total_spent)}</div></div>`).join(""):`<div class="empty-state">Customer records will appear after orders are placed.</div>`; }
       function renderEvents(){ $("#eventList").innerHTML=state.events.length?state.events.map(e=>`<div class="event-card"><img src="${esc(e.image||"")}" alt="${esc(e.title)}" onerror="this.style.display='none'"><div><div class="event-meta">${esc(e.date||"")}</div><h4>${esc(e.title)}</h4><div>${esc(e.subtitle||"")}</div><p>${esc(e.description||"")}</p></div><button class="tiny-btn danger" data-delete-event="${e.id}">Delete</button></div>`).join(""):`<div class="empty-state">No events created.</div>`; }
       function renderNotifications(){ $("#notificationList").innerHTML=state.notifications.length?state.notifications.map(n=>`<div class="notification-item">${esc(n.text)}</div>`).join(""):`<div class="notification-item">You're all caught up.</div>`;$("#bellCount").textContent=state.notifications.length; }
@@ -881,6 +892,7 @@
       $("#productForm").addEventListener("submit",async e=>{e.preventDefault();const form=e.currentTarget;const fd=new FormData(form);const price=Number(fd.get("price"));const discount=Math.max(0,Math.min(100,Number(fd.get("discount"))||0));const oldPrice=discount?Math.round(price/(1-discount/100)*100)/100:0;const imageFile=$("#productImage").files[0];const payload=new FormData();for(const key of ["name","category","publicSku","internalSku","offerText","status","description"])payload.append(key,fd.get(key)||"");payload.append("price",String(price));payload.append("oldPrice",String(oldPrice));payload.append("badge","New");payload.append("rating","4.8");if(imageFile)payload.append("imageFile",imageFile);else{const existing=state.products.find(p=>p.id===Number($("#productId").value));payload.append("image",existing?.image||"");}const id=$("#productId").value;try{await api(id?`/api/products/${id}`:"/api/products",{method:id?"PUT":"POST",body:payload});toast(id?"Product updated.":"Product added.");resetProductForm();await loadAll();}catch(err){toast(err.message);}});
       $("#productTableBody").addEventListener("click",async e=>{const edit=e.target.closest("[data-edit]");const del=e.target.closest("[data-delete-product]");if(edit)editProduct(edit.dataset.edit);if(del&&confirm("Delete this product permanently?")){try{await api(`/api/products/${del.dataset.deleteProduct}`,{method:"DELETE"});toast("Product deleted.");await loadAll();}catch(err){toast(err.message);}}});
       $("#ordersTableBody").addEventListener("click",async e=>{const save=e.target.closest("[data-save-order]");const view=e.target.closest("[data-view-order]");if(save){const id=save.dataset.saveOrder;const status=document.querySelector(`[data-order-status="${id}"]`).value;try{await api(`/api/orders/${id}/status`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status})});toast("Order status updated.");await loadAll();}catch(err){toast(err.message);}}if(view){const o=state.orders.find(x=>x.id===Number(view.dataset.viewOrder));if(o){let items=[];try{items=JSON.parse(o.items_json||"[]");}catch{}alert(`Order: ${o.order_number}\nCustomer: ${o.customer_name}\nEmail: ${o.email}\nPhone: ${o.phone}\nAddress: ${o.address}\nItems: ${items.map(i=>`${i.name} x ${i.qty}`).join(", ")}\nTotal: ${money(o.total_amount)}\nStatus: ${o.status}`);}}});
+      $("#supportInbox").addEventListener("submit",async e=>{const form=e.target.closest("[data-ticket-form]");if(!form)return;e.preventDefault();const button=form.querySelector("button[type=submit]");button.disabled=true;try{const fd=new FormData(form);await api(`/api/admin/support/${form.dataset.ticketForm}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({reply:fd.get("reply"),status:fd.get("status")})});toast("Customer-care reply saved.");await loadAll();}catch(err){toast(err.message);}finally{button.disabled=false;}});
       $("#eventForm").addEventListener("submit",async e=>{e.preventDefault();const fd=new FormData(e.currentTarget);const payload=Object.fromEntries(fd.entries());try{await api("/api/events",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});e.currentTarget.reset();toast("Event added.");await loadAll();}catch(err){toast(err.message);}});
       $("#eventList").addEventListener("click",async e=>{const b=e.target.closest("[data-delete-event]");if(b&&confirm("Delete this event?")){try{await api(`/api/events/${b.dataset.deleteEvent}`,{method:"DELETE"});toast("Event deleted.");await loadAll();}catch(err){toast(err.message);}}});
       $("#bellBtn").addEventListener("click",()=>$("#notificationPanel").classList.toggle("open"));

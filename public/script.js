@@ -305,6 +305,7 @@ function initStoreFilters() {
 }
 
 async function openCheckoutModal() {
+  if (window.NSC_ACCOUNT && !window.NSC_ACCOUNT.isSignedIn()) { window.NSC_ACCOUNT.promptSignIn(); return; }
   if (cart.length === 0) { alert("Your cart is empty."); return; }
   checkoutModal.classList.add("show");
 }
@@ -322,7 +323,7 @@ checkoutForm.addEventListener("submit", async (event) => {
     const response = await fetch("/api/orders", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({customer,items:cart.map(i=>({id:i.id,qty:i.qty}))})});
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Unable to place order.");
-    alert(`Order placed successfully!\nOrder number: ${data.orderNumber}\nTotal: ${formatPrice(data.total)}\nSave your order number and use the Track Order section with your checkout phone number to see delivery updates.`);
+    alert(`Order placed successfully!\nOrder number: ${data.orderNumber}\nTotal: ${formatPrice(data.total)}\nYour order is now saved in My Account → My Orders.`);
     cart=[];saveCart();renderCart();closeCart();closeCheckout();checkoutForm.reset();
   } catch (error) { alert(error.message || "Order could not be placed."); }
   finally { submit.disabled = false; }

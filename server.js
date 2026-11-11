@@ -2,8 +2,8 @@ const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
-const cors = require("cors");
 const session = require("express-session");
+const SQLiteStore = require("connect-sqlite3")(session);
 const multer = require("multer");
 require("dotenv").config();
 const { db, initDatabase } = require("./database");
@@ -15,7 +15,6 @@ if (isProduction && (!process.env.SESSION_SECRET || !process.env.ADMIN_USERNAME 
   throw new Error("Set SESSION_SECRET, ADMIN_USERNAME and ADMIN_PASSWORD in hosting environment variables.");
 }
 app.set("trust proxy", 1);
-app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 
@@ -37,11 +36,27 @@ const upload = multer({
   }
 });
 
+// Store sessions in SQLite instead of express-session's in-memory default.
+// On Render, set SESSION_STORE_DIR to a directory inside the persistent disk
+// (for example /var/data/sessions) so sessions survive deploys and restarts.
+const sessionStoreDir = process.env.SESSION_STORE_DIR || path.join(__dirname, "data", "sessions");
+fs.mkdirSync(sessionStoreDir, { recursive: true });
+const sessionStore = new SQLiteStore({
+  db: "sessions.sqlite",
+  dir: sessionStoreDir,
+  table: "sessions",
+  concurrentDB: true
+});
+sessionStore.on("error", (error) => console.error("Session store error:", error));
+
 app.use(session({
-  name: "newsc_admin_sid",
+  store: sessionStore,
+  name: "newsc_session",
   secret: process.env.SESSION_SECRET || "local-development-only-change-this-secret",
   resave: false,
   saveUninitialized: false,
+  rolling: true,
+  proxy: isProduction,
   cookie: { httpOnly: true, secure: isProduction, sameSite: "lax", maxAge: 1000 * 60 * 60 * 8 }
 }));
 app.use(express.static(path.join(__dirname, "public")));
@@ -92,7 +107,59 @@ app.post("/api/admin/login", (req,res)=>{
     req.session.save(saveErr=>saveErr?res.status(500).json({error:"Could not save login session."}):res.json({success:true}));
   });
 });
-app.post("/api/admin/logout",(req,res)=>req.session.destroy(()=>{res.clearCookie("newsc_admin_sid");res.json({success:true});}));
+
+app.post("/api/admin/logout",(req,res)=>req.session.destroy(()=>{res.clearCookie("newsc_session");res.json({success:true});}));
+
+// Customer accounts use salted scrypt hashes; passwords are never stored in plain text.
+function hashPassword(password, salt=crypto.randomBytes(16).toString("hex")) {
+  return new Promise((resolve,reject)=>crypto.scrypt(String(password),salt,64,(err,key)=>err?reject(err):resolve(`${salt}:${key.toString("hex")}`)));
+}
+async function verifyPassword(password, stored) {
+  const [salt,hash]=String(stored||"").split(":"); if(!salt||!hash) return false;
+  const derived=await hashPassword(password,salt); const actual=Buffer.from(derived.split(":")[1],"hex"), expected=Buffer.from(hash,"hex");
+  return actual.length===expected.length && crypto.timingSafeEqual(actual,expected);
+}
+function requireCustomer(req,res,next){if(req.session?.customerId)return next();return res.status(401).json({error:"Please sign in to your customer account."});}
+app.get("/api/account/me",asyncRoute(async(req,res)=>{
+  if(!req.session?.customerId)return res.json({authenticated:false});
+  const customer=await get("SELECT id,name,email,phone FROM customers WHERE id=?",[req.session.customerId]);
+  if(!customer){delete req.session.customerId;return res.json({authenticated:false});}
+  res.set("Cache-Control","no-store");res.json({authenticated:true,customer});
+}));
+app.post("/api/account/register",asyncRoute(async(req,res)=>{
+  const name=String(req.body.name||"").trim(), email=String(req.body.email||"").trim().toLowerCase(), phone=String(req.body.phone||"").trim(), password=String(req.body.password||"");
+  if(name.length<2||!/^\S+@\S+\.\S+$/.test(email)||password.length<8)return res.status(400).json({error:"Enter your name, a valid email and a password of at least 8 characters."});
+  if(await get("SELECT id FROM customers WHERE email=?",[email]))return res.status(409).json({error:"An account with this email already exists. Please sign in."});
+  const passwordHash=await hashPassword(password);const result=await run("INSERT INTO customers(name,email,phone,password_hash) VALUES(?,?,?,?)",[name,email,phone,passwordHash]);
+  req.session.regenerate(err=>{if(err)return res.status(500).json({error:"Could not create customer session."});req.session.customerId=result.lastID;req.session.customerName=name;req.session.save(saveErr=>saveErr?res.status(500).json({error:"Could not save customer session."}):res.status(201).json({success:true,customer:{id:result.lastID,name,email,phone}}));});
+}));
+app.post("/api/account/login",asyncRoute(async(req,res)=>{
+  const email=String(req.body.email||"").trim().toLowerCase(),password=String(req.body.password||"");
+  const customer=await get("SELECT id,name,email,phone,password_hash FROM customers WHERE email=?",[email]);
+  if(!customer||!(await verifyPassword(password,customer.password_hash)))return res.status(401).json({error:"Incorrect email or password."});
+  req.session.regenerate(err=>{if(err)return res.status(500).json({error:"Could not create session."});req.session.customerId=customer.id;req.session.customerName=customer.name;req.session.save(e=>e?res.status(500).json({error:"Could not save session."}):res.json({success:true,customer:{id:customer.id,name:customer.name,email:customer.email,phone:customer.phone}}));});
+}));
+app.post("/api/account/logout",(req,res)=>{delete req.session.customerId;delete req.session.customerName;req.session.save(()=>res.json({success:true}));});
+app.get("/api/account/orders",requireCustomer,asyncRoute(async(req,res)=>{
+  const rows=await all("SELECT id,order_number,total_amount,status,created_at,items_json FROM orders WHERE customer_id=? ORDER BY id DESC",[req.session.customerId]);
+  res.set("Cache-Control","no-store");res.json(rows.map(o=>({...o,items:(()=>{try{return JSON.parse(o.items_json||"[]").map(i=>({name:i.name,qty:i.qty,price:i.price}));}catch{return [];}})()})));
+}));
+app.post("/api/account/support",requireCustomer,asyncRoute(async(req,res)=>{
+  const subject=String(req.body.subject||"").trim().slice(0,120),message=String(req.body.message||"").trim().slice(0,3000),orderNumber=String(req.body.orderNumber||"").trim().toUpperCase();
+  if(subject.length<3||message.length<5)return res.status(400).json({error:"Enter a subject and a message."});
+  if(orderNumber){const own=await get("SELECT id FROM orders WHERE order_number=? AND customer_id=?",[orderNumber,req.session.customerId]);if(!own)return res.status(400).json({error:"That order number is not linked to your account."});}
+  const r=await run("INSERT INTO support_tickets(customer_id,order_number,subject,message,status) VALUES(?,?,?,?, 'open')",[req.session.customerId,orderNumber||null,subject,message]);
+  res.status(201).json({success:true,ticketId:r.lastID,message:"Your message has been sent to customer care."});
+}));
+app.get("/api/account/support",requireCustomer,asyncRoute(async(req,res)=>res.json(await all("SELECT id,order_number,subject,message,admin_reply,status,created_at,replied_at FROM support_tickets WHERE customer_id=? ORDER BY id DESC",[req.session.customerId]))));
+app.get("/api/admin/support",requireAdmin,asyncRoute(async(_req,res)=>res.json(await all("SELECT t.*,c.name AS customer_name,c.email AS customer_email,c.phone AS customer_phone FROM support_tickets t JOIN customers c ON c.id=t.customer_id ORDER BY CASE t.status WHEN 'open' THEN 0 WHEN 'in_progress' THEN 1 ELSE 2 END,t.id DESC"))));
+app.patch("/api/admin/support/:id",requireAdmin,asyncRoute(async(req,res)=>{
+  const reply=String(req.body.reply||"").trim().slice(0,3000),status=String(req.body.status||"replied");
+  if(!["open","in_progress","replied","closed"].includes(status))return res.status(400).json({error:"Invalid support status."});
+  const ticket=await get("SELECT id FROM support_tickets WHERE id=?",[req.params.id]);if(!ticket)return res.status(404).json({error:"Ticket not found."});
+  await run("UPDATE support_tickets SET admin_reply=?,status=?,replied_at=CASE WHEN ?<>'' THEN CURRENT_TIMESTAMP ELSE replied_at END,updated_at=CURRENT_TIMESTAMP WHERE id=?",[reply,status,reply,req.params.id]);res.json({success:true});
+}));
+
 
 // Public storefront catalogue: never expose internal SKU to visitors.
 app.get("/api/products",asyncRoute(async(_req,res)=>{
@@ -172,10 +239,11 @@ app.get("/api/admin/notifications",requireAdmin,asyncRoute(async(_req,res)=>{
 app.post("/api/orders",asyncRoute(async(req,res)=>{
   const {customer,items}=req.body||{};
   if(!customer?.name||!customer?.email||!customer?.phone||!customer?.address||!Array.isArray(items)||!items.length) return res.status(400).json({error:"Complete customer details and cart items are required."});
+  if(req.session?.customerId){const account=await get("SELECT email FROM customers WHERE id=?",[req.session.customerId]);if(!account||account.email!==String(customer.email).trim().toLowerCase())return res.status(400).json({error:"Use the email address registered to your signed-in account at checkout."});}
   let total=0; const verified=[];
   for(const item of items){const p=await get("SELECT id,name,public_sku,price,image,status FROM products WHERE id=?",[Number(item.id)]);const qty=Math.max(1,Math.min(20,Number(item.qty)||1));if(!p||p.status==="Out of stock")return res.status(400).json({error:"One of the products is unavailable."});total+=Number(p.price)*qty;verified.push({id:p.id,name:p.name,public_sku:p.public_sku,price:p.price,qty,image:p.image});}
   const orderNumber=`NS${Date.now().toString().slice(-9)}`;
-  const created=await run("INSERT INTO orders(order_number,customer_name,email,phone,address,total_amount,items_json,status) VALUES(?,?,?,?,?,?,?,?)",[orderNumber,customer.name,customer.email,customer.phone,customer.address,total,JSON.stringify(verified),"pending"]);
+  const created=await run("INSERT INTO orders(order_number,customer_name,email,phone,address,total_amount,items_json,status,customer_id) VALUES(?,?,?,?,?,?,?,?,?)",[orderNumber,customer.name,customer.email,customer.phone,customer.address,total,JSON.stringify(verified),"pending",req.session?.customerId||null]);
   await run("INSERT INTO order_status_history(order_id,status,note) VALUES(?,?,?)",[created.lastID,"pending","Your order has been placed successfully."]);
   res.status(201).json({success:true,orderNumber,total,status:"pending",paymentMode:"Pay on delivery / payment arranged separately"});
 }));

@@ -1,12 +1,13 @@
 {
   "name": "new-sc-store",
-  "version": "2.0.0",
-  "description": "NEW SC ecommerce store with functional admin dashboard",
+  "version": "2.1.0",
+  "description": "NEW SC ecommerce store with customer accounts, order history and customer care support",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
+    "connect-sqlite3": "^0.9.18",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",

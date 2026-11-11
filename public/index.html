@@ -30,6 +30,7 @@
           <a href="#story">Story</a>
           <a href="#delivery">Delivery</a>
           <a href="#order-tracking">Track Order</a>
+          <a href="#my-account">My Account</a>
           <a href="#payment">Payment</a>
           <a href="#contact">Contact</a>
         </nav>
@@ -247,6 +248,27 @@
         </div>
       </section>
 
+
+      <section id="my-account" class="account-section">
+        <div class="container">
+          <div class="section-header"><div><span class="eyebrow">Your space</span><h2>My account.</h2></div><p class="section-copy">Sign in to see your orders and contact our customer care team.</p></div>
+          <div id="accountAuth" class="account-card">
+            <div class="account-tabs"><button type="button" class="account-tab active" data-account-tab="login">Sign in</button><button type="button" class="account-tab" data-account-tab="register">Create account</button></div>
+            <form id="accountLoginForm" class="account-form"><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" autocomplete="current-password" minlength="8" required></label><button class="btn btn-primary" type="submit">Sign in</button></form>
+            <form id="accountRegisterForm" class="account-form" hidden><label>Full name<input name="name" required minlength="2"></label><label>Email<input name="email" type="email" required></label><label>Phone<input name="phone" type="tel"></label><label>Password (minimum 8 characters)<input name="password" type="password" minlength="8" required autocomplete="new-password"></label><button class="btn btn-primary" type="submit">Create account</button></form>
+            <p id="accountMessage" role="status" aria-live="polite"></p>
+          </div>
+          <div id="accountDashboard" class="account-card" hidden>
+            <div class="account-welcome"><div><span class="eyebrow">Signed in</span><h3 id="accountWelcomeName">Welcome</h3><p id="accountWelcomeEmail"></p></div><button type="button" class="btn btn-secondary" id="accountLogout">Sign out</button></div>
+            <h3>My orders</h3><div id="myOrdersList" class="account-orders"></div>
+            <div class="support-area"><h3>Customer care</h3><p>Send a question or complaint. Our admin team can reply here.</p>
+              <form id="supportForm" class="account-form"><label>Order number (optional)<input name="orderNumber" placeholder="NS123456789"></label><label>Subject<input name="subject" maxlength="120" required></label><label>Your message<textarea name="message" rows="4" maxlength="3000" required></textarea></label><button class="btn btn-primary" type="submit">Send to customer care</button></form>
+              <h4>Your support conversations</h4><div id="mySupportList" class="account-orders"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="contact">
         <div class="container">
           <div class="newsletter-box">
@@ -374,5 +396,6 @@
     </div>
 
     <script src="script.js"></script>
+    <script src="account.js"></script>
   </body>
 </html>
